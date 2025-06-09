@@ -1,0 +1,7 @@
+flask
+pandas
+streamlit
+torch
+openpyxl
+scikit-learn
+ortools
