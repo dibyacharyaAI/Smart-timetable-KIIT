@@ -1,3 +1,7 @@
+import os
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+
+
 import streamlit as st
 import pandas as pd
 from timetable_pipeline.process import run_full_pipeline
