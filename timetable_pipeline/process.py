@@ -19,7 +19,7 @@ def run_full_pipeline(input_df: pd.DataFrame) -> pd.DataFrame:
     """
     # ✅ Step 1: Extract valid tuples from input for reconstruction
     valid_tuples = list(
-        input_df[['SubjectIdx', 'TeacherIdx', 'ActivityType']]
+        input_df[['SubjectCode', 'TeacherID', 'Block']]
         .drop_duplicates()
         .itertuples(index=False, name=None)
     )
@@ -27,7 +27,7 @@ def run_full_pipeline(input_df: pd.DataFrame) -> pd.DataFrame:
     # ✅ Step 2: Heal anomalous section rows using autoencoder
     healed_df = reconstruct_anomalous_sections(
         input_df,
-        model_path="sample_data/timetable_autoencoder150.pt",
+        model_path="data/timetable_autoencoder150.pt",
         valid_tuples=valid_tuples
     )
 
@@ -35,7 +35,7 @@ def run_full_pipeline(input_df: pd.DataFrame) -> pd.DataFrame:
     teacher_fixed_df = solve_teacher_conflict(healed_df)
 
     # ✅ Step 4: Attach RoomType from activity table → map to Block
-    activity_df = pd.read_excel("sample_data/activities_table.xlsx")
+    activity_df = pd.read_excel("data/activities_table.xlsx")
     merged_df = teacher_fixed_df.merge(
         activity_df[['Subject', 'RoomType']],
         left_on="SubjectCode",
@@ -50,7 +50,7 @@ def run_full_pipeline(input_df: pd.DataFrame) -> pd.DataFrame:
     merged_df["Block"] = merged_df["RoomType"].map(roomtype_to_block).fillna("Unknown-Block")
 
     # ✅ Step 5: Apply transit time constraints & fix violations
-    transit_df = pd.read_excel("sample_data/updated_transit_time_constraints.xlsx")
+    transit_df = pd.read_excel("data/updated_transit_time_constraints.xlsx")
     transit_map = build_transit_map(transit_df)
     final_df = repair_transit_violations(merged_df, transit_map)
 
