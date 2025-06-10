@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>📅 Smart Timetable Editor</title>
+  <style>
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    td[contenteditable="true"] { background-color: #f9f9f9; }
+    #saveBtn { margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <h2>🖊️ Editable Timetable</h2>
+
+  <input type="file" id="csvInput" accept=".csv" />
+  <button onclick="loadCSV()">Load CSV</button>
+  <button id="saveBtn" onclick="saveAndTrigger()">💾 Save & Run Pipeline</button>
+
+  <br /><br />
+  <div id="tableContainer"></div>
+
+  <h3>📋 Final Output:</h3>
+  <pre id="resultBox"></pre>
+
+  <script>
+    let timetableData = [];
+    let headers = [];
+
+    function loadCSV() {
+      const fileInput = document.getElementById('csvInput');
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const lines = e.target.result.split('\n');
+        headers = lines[0].split(',');
+        timetableData = lines.slice(1).filter(row => row.trim()).map(row => row.split(','));
+        renderTable();
+      };
+      reader.readAsText(file);
+    }
+
+    function renderTable() {
+      const container = document.getElementById('tableContainer');
+      let html = '<table><tr>';
+      headers.forEach(h => html += `<th>${h}</th>`);
+      html += '</tr>';
+
+      timetableData.forEach((row, rowIndex) => {
+        html += '<tr>';
+        row.forEach((cell, colIndex) => {
+          html += `<td contenteditable="true" oninput="updateCell(${rowIndex}, ${colIndex}, this.innerText)">${cell}</td>`;
+        });
+        html += '</tr>';
+      });
+
+      html += '</table>';
+      container.innerHTML = html;
+    }
+
+    function updateCell(row, col, value) {
+      timetableData[row][col] = value;
+    }
+
+    function saveAndTrigger() {
+      const csvContent = [headers.join(',')]
+        .concat(timetableData.map(row => row.join(',')))
+        .join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const formData = new FormData();
+      formData.append('file', blob, 'edited_timetable.csv');
+
+      fetch("http://localhost:5000/upload-timetable", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("resultBox").innerText = JSON.stringify(data, null, 2);
+        alert("✅ Timetable updated and processed!");
+      })
+      .catch(err => {
+        console.error(err);
+        alert("❌ Error in processing");
+      });
+    }
+  </script>
+</body>
+</html>
