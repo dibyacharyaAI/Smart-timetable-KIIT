@@ -1,11 +1,4 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from flask import Flask, request, jsonify
-from timetable_pipeline.formatter import format_admin_view
-from timetable_pipeline.process import run_full_pipeline
-
+# timetable_pipeline/formatter.py
 
 import pandas as pd
 
