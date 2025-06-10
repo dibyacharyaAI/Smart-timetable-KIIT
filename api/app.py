@@ -65,6 +65,12 @@ def upload_and_process():
     # ✅ Return admin-format JSON for UI
     return jsonify(format_admin_view(final_df))
 
+@app.route("/load-final-csv")
+def load_final_csv():
+    try:
+        return send_from_directory("../data
+
+
 # 🚀 Launch API
 if __name__ == "__main__":
     app.run(debug=True)
