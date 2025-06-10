@@ -2,10 +2,11 @@
 
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from flask import Flask, request, jsonify
 import pandas as pd
+from flask import Flask, request, jsonify, send_from_directory
+
+# 👇 Make sure parent folder is in path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from timetable_pipeline.formatter import (
     format_section_view,
@@ -14,22 +15,27 @@ from timetable_pipeline.formatter import (
 )
 from timetable_pipeline.process import run_full_pipeline
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="../frontend", static_url_path="")
 
-# 🔄 Load processed timetable
+# 🏠 Serve frontend editor HTML
+@app.route("/")
+def index():
+    return send_from_directory(app.static_folder, "frontend_editor.html")
+
+# 🔄 Load current processed timetable
 def load_final_df():
     try:
         return pd.read_csv("data/final_transit_fixed.csv")
     except FileNotFoundError:
         return pd.DataFrame([])
 
-# 📘 Section-wise view
+# 📘 Section-wise API
 @app.route("/timetable/section/<section_id>", methods=["GET"])
 def get_section(section_id):
     df = load_final_df()
     return jsonify(format_section_view(df, section_id))
 
-# 👨‍🏫 Teacher-wise view
+# 👨‍🏫 Teacher-wise API
 @app.route("/timetable/teacher/<teacher_id>", methods=["GET"])
 def get_teacher(teacher_id):
     df = load_final_df()
@@ -41,16 +47,24 @@ def get_admin():
     df = load_final_df()
     return jsonify(format_admin_view(df))
 
-# ⬆️ Upload & Process CSV
+# ⬆️ Upload + Process + Save CSV via Pipeline
 @app.route("/upload-timetable", methods=["POST"])
 def upload_and_process():
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
+
     file = request.files['file']
     df = pd.read_csv(file)
-    json_data = run_full_pipeline(df)
-    return jsonify(json_data)
 
-# 🚀 Launch
+    # ✅ Run pipeline + get processed dataframe
+    final_df = run_full_pipeline(df)
+
+    # ✅ Save as latest for all views to load
+    final_df.to_csv("data/final_transit_fixed.csv", index=False)
+
+    # ✅ Return admin-format JSON for UI
+    return jsonify(format_admin_view(final_df))
+
+# 🚀 Launch API
 if __name__ == "__main__":
     app.run(debug=True)
