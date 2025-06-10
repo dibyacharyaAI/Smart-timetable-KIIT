@@ -65,10 +65,14 @@ def upload_and_process():
     # ✅ Return admin-format JSON for UI
     return jsonify(format_admin_view(final_df))
 
+from flask import send_file
+
 @app.route("/load-final-csv")
 def load_final_csv():
     try:
-        return send_from_directory("../data
+        return send_file("../data/final_transit_fixed.csv", mimetype="text/csv")
+    except FileNotFoundError:
+        return "No CSV found", 404
 
 
 # 🚀 Launch API
