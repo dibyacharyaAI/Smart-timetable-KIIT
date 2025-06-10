@@ -4,8 +4,8 @@ from ortools.sat.python import cp_model
 def solve_teacher_conflict(df):
     sections = df["SectionID"].unique().tolist()
     slots = sorted(df["SlotIndex"].unique())
-    teachers = df["TeacherIdx"].unique().tolist()
-    subjects = df["SubjectIdx"].unique().tolist()
+    teachers = df["TeacherID"].unique().tolist()
+    subjects = df["SubjectCode"].unique().tolist()
     T, S = len(teachers), len(subjects)
 
     teacher_map = {t: i for i, t in enumerate(teachers)}
