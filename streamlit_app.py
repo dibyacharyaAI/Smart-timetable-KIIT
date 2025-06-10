@@ -1,3 +1,6 @@
+import sys
+sys.modules['torch._classes'] = None
+
 import os
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
