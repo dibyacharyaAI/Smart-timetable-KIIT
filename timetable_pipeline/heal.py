@@ -9,7 +9,7 @@ def reconstruct_anomalous_sections(df, model_path, valid_tuples, max_len=50):
 
     for section in df['SectionID'].unique():
         sub_df = df[df['SectionID'] == section]
-        x = sub_df[['SubjectIdx', 'TeacherIdx', 'ActivityType']].values
+        x = sub_df[['SubjectCode', 'TeacherID', 'Block']].values
         if len(x) < max_len:
             pad = np.zeros((max_len - len(x), 3))
             x = np.vstack([x, pad])
@@ -27,9 +27,9 @@ def reconstruct_anomalous_sections(df, model_path, valid_tuples, max_len=50):
             reconstructed_rows.append({
                 'SectionID': section,
                 'SlotIndex': i,
-                'SubjectIdx': best[0],
-                'TeacherIdx': best[1],
-                'ActivityType': best[2]
+                'SubjectCode': best[0],
+                'TeacherID': best[1],
+                'Block': best[2]
             })
 
     return pd.DataFrame(reconstructed_rows)
