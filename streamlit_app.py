@@ -1,6 +1,4 @@
-# === Patch to prevent Streamlit + PyTorch crash ===
-import sys
-sys.modules['torch._classes'] = None
+
 
 # === Mac GPU fallback safe mode ===
 import os
