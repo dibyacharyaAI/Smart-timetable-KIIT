@@ -6,7 +6,7 @@ from timetable_pipeline.formatter import format_output
 # File Paths
 ORIGINAL_FILE = "data/final_transit_fixed.csv"
 UPDATED_FILE = "data/updated_from_ui.csv"
-TEACHER_MAP_FILE = "data/structured_teacher_mapping.xlsx"
+TEACHER_MAP_FILE = "data/synthetic_teachers_fixed.xlsx"
 
 @st.cache_data
 def load_data():
