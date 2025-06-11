@@ -3,15 +3,38 @@ import numpy as np
 import pandas as pd
 from timetable_pipeline.model import load_model
 
-def reconstruct_anomalous_sections(df, model_path, valid_tuples, valid_df, max_len=50):
+def reconstruct_anomalous_sections(df, model_path, valid_tuples=None, valid_df=None, max_len=50):
     model = load_model(model_path)
     reconstructed_rows = []
 
-    for section in df['SectionID'].unique():
-        sub_df = df[df['SectionID'] == section]
-        x = sub_df[['SubjectCode', 'TeacherID', 'Block']].values
+    # 1️⃣ Encode categorical columns
+    encoded_df = df.copy()
+    subject_map = {val: i for i, val in enumerate(encoded_df["SubjectCode"].unique())}
+    teacher_map = {val: i for i, val in enumerate(encoded_df["TeacherID"].unique())}
+    block_map = {val: i for i, val in enumerate(encoded_df["Block"].unique())}
+
+    inv_subject_map = {v: k for k, v in subject_map.items()}
+    inv_teacher_map = {v: k for k, v in teacher_map.items()}
+    inv_block_map = {v: k for k, v in block_map.items()}
+
+    encoded_df["SubjectCode"] = encoded_df["SubjectCode"].map(subject_map)
+    encoded_df["TeacherID"] = encoded_df["TeacherID"].map(teacher_map)
+    encoded_df["Block"] = encoded_df["Block"].map(block_map)
+
+    # 2️⃣ Prepare valid encoded tuples
+    valid_tuples = list(
+        encoded_df[["SubjectCode", "TeacherID", "Block"]]
+        .drop_duplicates()
+        .itertuples(index=False, name=None)
+    )
+
+    # 3️⃣ Section-wise healing
+    for section in encoded_df['SectionID'].unique():
+        sub_df = encoded_df[encoded_df['SectionID'] == section]
+        x = sub_df[['SubjectCode', 'TeacherID', 'Block']].astype(np.float32).values
+
         if len(x) < max_len:
-            pad = np.zeros((max_len - len(x), 3))
+            pad = np.zeros((max_len - len(x), 3), dtype=np.float32)
             x = np.vstack([x, pad])
         else:
             x = x[:max_len]
@@ -25,11 +48,16 @@ def reconstruct_anomalous_sections(df, model_path, valid_tuples, valid_df, max_l
         for i, decoded in enumerate(out):
             best = min(valid_tuples, key=lambda v: np.linalg.norm(decoded - np.array(v)))
 
-            # Match back to original data to get missing fields
+            subj_idx, teach_idx, block_idx = best
+            subj = inv_subject_map.get(subj_idx, "NA")
+            teach = inv_teacher_map.get(teach_idx, "NA")
+            block = inv_block_map.get(block_idx, "Unknown")
+
+            # Match original fields from unencoded valid_df
             match = valid_df[
-                (valid_df["SubjectCode"] == best[0]) &
-                (valid_df["TeacherID"] == best[1]) &
-                (valid_df["Block"] == best[2])
+                (valid_df["SubjectCode"] == subj) &
+                (valid_df["TeacherID"] == teach) &
+                (valid_df["Block"] == block)
             ]
 
             if not match.empty:
@@ -43,9 +71,9 @@ def reconstruct_anomalous_sections(df, model_path, valid_tuples, valid_df, max_l
             reconstructed_rows.append({
                 'SectionID': section,
                 'SlotIndex': i,
-                'SubjectCode': best[0],
-                'TeacherID': best[1],
-                'Block': best[2],
+                'SubjectCode': subj,
+                'TeacherID': teach,
+                'Block': block,
                 'Scheme': scheme,
                 'Subject': subject,
                 'RoomType': roomtype
