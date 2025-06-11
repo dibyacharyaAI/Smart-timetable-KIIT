@@ -1,21 +1,27 @@
 import pandas as pd
 
-# 🔧 Shared builder (with corrected fields)
+# 🔧 Human-readable builder
 def build_row(row, idx):
+    day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    slot = int(row.get("SlotIndex", 0))
+    day = day_names[slot // 8] if slot // 8 < len(day_names) else "Unknown"
+    start = 8 + (slot % 8)
+    end = start + 1
+    time = f"{start}:00 - {end}:00"
+
     return {
         "ID": idx + 1,
-        "SectionID": row.get("SectionID"),
-        "SlotIndex": row.get("SlotIndex"),
+        "Section": row.get("SectionID"),
+        "Day": day,
+        "Time": time,
         "SubjectCode": row.get("SubjectCode"),
-        "TeacherID": row.get("TeacherID"),
-        "Scheme": row.get("Scheme"),
         "Subject": row.get("Subject"),
+        "TeacherID": row.get("TeacherID"),
+        "TeacherName": row.get("TeacherName", "Unknown"),
+        "Scheme": row.get("Scheme"),
         "RoomType": row.get("RoomType"),
         "Block": row.get("Block"),
-        "Day": int(row.get("SlotIndex", 0)) // 8,
-        "StartHour": 8 + (int(row.get("SlotIndex", 0)) % 8),
-        "EndHour": 9 + (int(row.get("SlotIndex", 0)) % 8),
-        "Type": "Lab" if str(row.get("RoomType")).lower() == "lab" else "Theory"
+        "Type": "Lab" if str(row.get("RoomType")).strip().lower() == "lab" else "Theory"
     }
 
 # 📋 Admin full view
@@ -39,7 +45,7 @@ def format_teacher_view(df: pd.DataFrame) -> pd.DataFrame:
         result.extend([build_row(row, i) for i, row in filtered.iterrows()])
     return pd.DataFrame(result)
 
-# 🔀 Wrapper for Streamlit
+# 🔁 Final output dispatcher
 def format_output(df: pd.DataFrame, mode: str = "admin") -> pd.DataFrame:
     if mode == "section":
         return format_section_view(df)
