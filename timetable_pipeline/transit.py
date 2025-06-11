@@ -20,19 +20,23 @@ def repair_transit_violations(df, transit_map):
             row = sub_df.loc[i].copy()
             if i > 0:
                 prev = new_rows[-1]
-                gap = (row['SlotIndex'] + shift) - prev['SlotIndex']
-                required = transit_map.get(prev['Block'], {}).get(row['Block'], 0)
+                gap = row['SlotIndex'] + shift - prev['SlotIndex']
+                required = transit_map.get(str(prev['Block']), {}).get(str(row['Block']), 0)
                 if gap < required:
                     shift += (required - gap)
             row['SlotIndex'] += shift
             new_rows.append(row)
         return pd.DataFrame(new_rows)
 
-    for group_col in ['TeacherID', 'SectionID']:
-        for val in df[group_col].unique():
-            sub_df = df[df[group_col] == val]
-            repaired = shift_schedule(sub_df)
-            fixed_rows.append(repaired)
+    # Only by Teacher (transit is teacher-centric)
+    for tid in df["TeacherID"].astype(str).unique():
+        sub_df = df[df["TeacherID"].astype(str) == tid]
+        repaired = shift_schedule(sub_df)
+        fixed_rows.append(repaired)
 
     final_df = pd.concat(fixed_rows, ignore_index=True)
-    return final_df.drop_duplicates(subset=["SectionID", "SlotIndex"])
+
+    # Optional: instead of drop_duplicates, ensure latest slot kept or raise flag
+    final_df = final_df.drop_duplicates(subset=["SectionID", "SlotIndex"], keep="first")
+
+    return final_df
