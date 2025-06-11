@@ -7,7 +7,12 @@ def reconstruct_anomalous_sections(df, model_path, valid_tuples=None, valid_df=N
     model = load_model(model_path)
     reconstructed_rows = []
 
-    # 1️⃣ Encode categorical columns
+    # Normalize key columns
+    df["SubjectCode"] = df["SubjectCode"].astype(str).str.strip()
+    df["TeacherID"] = df["TeacherID"].astype(str).str.strip()
+    df["Block"] = df["Block"].astype(str).str.strip()
+
+    # Encode categorical columns
     encoded_df = df.copy()
     subject_map = {val: i for i, val in enumerate(encoded_df["SubjectCode"].unique())}
     teacher_map = {val: i for i, val in enumerate(encoded_df["TeacherID"].unique())}
@@ -21,14 +26,22 @@ def reconstruct_anomalous_sections(df, model_path, valid_tuples=None, valid_df=N
     encoded_df["TeacherID"] = encoded_df["TeacherID"].map(teacher_map)
     encoded_df["Block"] = encoded_df["Block"].map(block_map)
 
-    # 2️⃣ Prepare valid encoded tuples
+    # Prepare valid encoded tuples
     valid_tuples = list(
         encoded_df[["SubjectCode", "TeacherID", "Block"]]
         .drop_duplicates()
         .itertuples(index=False, name=None)
     )
 
-    # 3️⃣ Section-wise healing
+    if valid_df is None:
+        raise ValueError("valid_df is required for reconstructing contextual fields.")
+
+    # Normalize valid_df for lookup
+    valid_df["SubjectCode"] = valid_df["SubjectCode"].astype(str).str.strip()
+    valid_df["TeacherID"] = valid_df["TeacherID"].astype(str).str.strip()
+    valid_df["Block"] = valid_df["Block"].astype(str).str.strip()
+
+    # Section-wise healing
     for section in encoded_df['SectionID'].unique():
         sub_df = encoded_df[encoded_df['SectionID'] == section]
         x = sub_df[['SubjectCode', 'TeacherID', 'Block']].astype(np.float32).values
