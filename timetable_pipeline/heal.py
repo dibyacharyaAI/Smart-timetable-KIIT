@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from timetable_pipeline.model import load_model
 
-def reconstruct_anomalous_sections(df, model_path, valid_tuples, max_len=50):
+def reconstruct_anomalous_sections(df, model_path, valid_tuples, valid_df, max_len=50):
     model = load_model(model_path)
     reconstructed_rows = []
 
@@ -24,12 +24,31 @@ def reconstruct_anomalous_sections(df, model_path, valid_tuples, max_len=50):
 
         for i, decoded in enumerate(out):
             best = min(valid_tuples, key=lambda v: np.linalg.norm(decoded - np.array(v)))
+
+            # Match back to original data to get missing fields
+            match = valid_df[
+                (valid_df["SubjectCode"] == best[0]) &
+                (valid_df["TeacherID"] == best[1]) &
+                (valid_df["Block"] == best[2])
+            ]
+
+            if not match.empty:
+                row = match.iloc[0]
+                scheme = row.get("Scheme", "NA")
+                subject = row.get("Subject", "Unknown")
+                roomtype = row.get("RoomType", "TBD")
+            else:
+                scheme, subject, roomtype = "NA", "Unknown", "TBD"
+
             reconstructed_rows.append({
                 'SectionID': section,
                 'SlotIndex': i,
                 'SubjectCode': best[0],
                 'TeacherID': best[1],
-                'Block': best[2]
+                'Block': best[2],
+                'Scheme': scheme,
+                'Subject': subject,
+                'RoomType': roomtype
             })
 
     return pd.DataFrame(reconstructed_rows)
