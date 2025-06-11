@@ -1,15 +1,12 @@
-# streamlit_app.py
-
 import streamlit as st
 import pandas as pd
 from timetable_pipeline.process import run_full_pipeline
-from timetable_pipeline.formatter import format_output  # Import formatter function
+from timetable_pipeline.formatter import format_output
 
 # File Paths
 ORIGINAL_FILE = "data/final_transit_fixed.csv"
 UPDATED_FILE = "data/updated_from_ui.csv"
 
-# Cache Data Loading
 @st.cache_data
 def load_data():
     try:
@@ -32,11 +29,18 @@ def save_data(df):
     except Exception as e:
         st.error(f"Error saving CSV: {e}")
 
-# Streamlit App
+# 🧠 Sort for readability
+def sort_df(df):
+    if "SectionID" in df.columns and "SlotIndex" in df.columns:
+        return df.sort_values(by=["SectionID", "SlotIndex"]).reset_index(drop=True)
+    return df
+
+# Streamlit UI
 st.set_page_config(layout="wide")
-st.title("📅 Smart Timetable Editor (Drag & Drop + Healing Pipeline)")
+st.title("📅 Smart Timetable Editor (Drag & Drop Style + Healing Pipeline)")
 
 df = load_data()
+df = sort_df(df)
 
 if not df.empty:
     st.subheader("✍️ Editable Timetable")
@@ -51,10 +55,14 @@ if not df.empty:
     with col2:
         if st.button("⚙️ Run Full Healing Pipeline"):
             try:
-                st.info("Running healing and conflict-solving pipeline...")
+                st.info("Running full healing + conflict-solving pipeline...")
                 healed_df = run_full_pipeline(edited_df)
 
-                # Format Output into 3 views
+                # Alert for Unknowns
+                if (healed_df["Block"] == "Unknown-Block").sum() > 0:
+                    st.warning("⚠️ Some rows still have 'Unknown-Block'. Check RoomType mapping or subject data.")
+
+                # Show output in 3 views
                 section_df = format_output(healed_df, mode="section")
                 teacher_df = format_output(healed_df, mode="teacher")
                 admin_df = format_output(healed_df, mode="admin")
@@ -71,6 +79,14 @@ if not df.empty:
 
                 with tab3:
                     st.dataframe(admin_df, use_container_width=True)
+
+                # Optional CSV export
+                st.download_button(
+                    label="📥 Download Final Timetable (CSV)",
+                    data=healed_df.to_csv(index=False),
+                    file_name="final_timetable_cleaned.csv",
+                    mime="text/csv"
+                )
 
             except Exception as e:
                 st.error(f"❌ Error running pipeline: {e}")
