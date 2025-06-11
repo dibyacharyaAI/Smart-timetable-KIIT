@@ -29,7 +29,7 @@ def solve_teacher_conflict(df):
                 teacher = teachers[t_idx]
                 subject = subjects[s_idx]
 
-                # 🧠 Find original matching row
+                # Match back to original row for context
                 original_match = df[
                     (df["SectionID"] == sec) &
                     (df["SubjectCode"] == subject) &
@@ -38,23 +38,28 @@ def solve_teacher_conflict(df):
 
                 if not original_match.empty:
                     row = original_match.iloc[0]
+                    scheme = row.get("Scheme", "NA")
+                    subject_name = row.get("Subject", "Unknown")
+                    roomtype = row.get("RoomType", "TBD")
+                    block = row.get("Block", "Unknown-Block")
+                    teacher_name = row.get("TeacherName", "Unknown")
                 else:
-                    row = pd.Series({
-                        "Scheme": "NA",
-                        "Subject": "Unknown",
-                        "RoomType": "TBD",
-                        "Block": "TBD"
-                    })
+                    scheme = "NA"
+                    subject_name = "Unknown"
+                    roomtype = "TBD"
+                    block = "Unknown-Block"
+                    teacher_name = "Unknown"
 
                 output.append({
                     "SectionID": sec,
                     "SlotIndex": slot,
                     "SubjectCode": subject,
                     "TeacherID": teacher,
-                    "Scheme": row.get("Scheme"),
-                    "Subject": row.get("Subject"),
-                    "RoomType": row.get("RoomType"),
-                    "Block": row.get("Block"),
+                    "TeacherName": teacher_name,
+                    "Scheme": scheme,
+                    "Subject": subject_name,
+                    "RoomType": roomtype,
+                    "Block": block
                 })
 
             result_df = pd.DataFrame(output)
