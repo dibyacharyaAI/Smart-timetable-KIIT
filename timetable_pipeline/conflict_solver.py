@@ -26,12 +26,37 @@ def solve_teacher_conflict(df):
             for slot in slots:
                 val = solver.Value(X[slot])
                 t_idx, s_idx = divmod(val, S)
+                teacher = teachers[t_idx]
+                subject = subjects[s_idx]
+
+                # 🧠 Find original matching row
+                original_match = df[
+                    (df["SectionID"] == sec) &
+                    (df["SubjectCode"] == subject) &
+                    (df["TeacherID"] == teacher)
+                ]
+
+                if not original_match.empty:
+                    row = original_match.iloc[0]
+                else:
+                    row = pd.Series({
+                        "Scheme": "NA",
+                        "Subject": "Unknown",
+                        "RoomType": "TBD",
+                        "Block": "TBD"
+                    })
+
                 output.append({
                     "SectionID": sec,
                     "SlotIndex": slot,
-                    "TeacherID": teachers[t_idx],
-                    "SubjectCode": subjects[s_idx]
+                    "SubjectCode": subject,
+                    "TeacherID": teacher,
+                    "Scheme": row.get("Scheme"),
+                    "Subject": row.get("Subject"),
+                    "RoomType": row.get("RoomType"),
+                    "Block": row.get("Block"),
                 })
+
             result_df = pd.DataFrame(output)
             all_section_dfs.append(result_df)
 
