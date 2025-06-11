@@ -1,42 +1,49 @@
-# timetable_pipeline/formatter.py
-
 import pandas as pd
 
-# 🟦 Shared: Color tags
-color_palette = [
-    "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-100",
-    "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-100",
-    "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-100",
-    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-100",
-]
-
-# 🔧 Shared builder function
-def build_entry(row, idx):
+# 🔧 Shared builder (with corrected fields)
+def build_row(row, idx):
     return {
-        "id": idx + 1,
-        "section": row.get("SectionID"),
-        "title": row.get("Subject", "NA"),
-        "day": int(row.get("SlotIndex", 0)) // 8,
-        "startHour": 8 + (int(row.get("SlotIndex", 0)) % 8),
-        "endHour": 9 + (int(row.get("SlotIndex", 0)) % 8),
-        "type": "lab" if str(row.get("ActivityType")).lower() == "lab" else "theory",
-        "room": row.get("Room", "TBD"),
-        "campus": row.get("Campus", "Main"),
-        "teacher": row.get("TeacherName", "Unknown"),
-        "teacherId": str(row.get("TeacherID")),
-        "color": color_palette[idx % len(color_palette)],
+        "ID": idx + 1,
+        "SectionID": row.get("SectionID"),
+        "SlotIndex": row.get("SlotIndex"),
+        "SubjectCode": row.get("SubjectCode"),
+        "TeacherID": row.get("TeacherID"),
+        "Scheme": row.get("Scheme"),
+        "Subject": row.get("Subject"),
+        "RoomType": row.get("RoomType"),
+        "Block": row.get("Block"),
+        "Day": int(row.get("SlotIndex", 0)) // 8,
+        "StartHour": 8 + (int(row.get("SlotIndex", 0)) % 8),
+        "EndHour": 9 + (int(row.get("SlotIndex", 0)) % 8),
+        "Type": "Lab" if str(row.get("RoomType")).lower() == "lab" else "Theory"
     }
 
 # 📋 Admin full view
-def format_admin_view(df: pd.DataFrame) -> list:
-    return [build_entry(row, i) for i, row in df.iterrows()]
+def format_admin_view(df: pd.DataFrame) -> pd.DataFrame:
+    data = [build_row(row, i) for i, row in df.iterrows()]
+    return pd.DataFrame(data)
 
 # 📋 Section-wise view
-def format_section_view(df: pd.DataFrame, section_id: str) -> list:
-    filtered = df[df["SectionID"] == section_id]
-    return [build_entry(row, i) for i, row in filtered.iterrows()]
+def format_section_view(df: pd.DataFrame) -> pd.DataFrame:
+    result = []
+    for sid in df["SectionID"].unique():
+        filtered = df[df["SectionID"] == sid]
+        result.extend([build_row(row, i) for i, row in filtered.iterrows()])
+    return pd.DataFrame(result)
 
 # 📋 Teacher-wise view
-def format_teacher_view(df: pd.DataFrame, teacher_id: str) -> list:
-    filtered = df[df["TeacherID"].astype(str) == str(teacher_id)]
-    return [build_entry(row, i) for i, row in filtered.iterrows()]
+def format_teacher_view(df: pd.DataFrame) -> pd.DataFrame:
+    result = []
+    for tid in df["TeacherID"].astype(str).unique():
+        filtered = df[df["TeacherID"].astype(str) == str(tid)]
+        result.extend([build_row(row, i) for i, row in filtered.iterrows()])
+    return pd.DataFrame(result)
+
+# 🔀 Wrapper for Streamlit
+def format_output(df: pd.DataFrame, mode: str = "admin") -> pd.DataFrame:
+    if mode == "section":
+        return format_section_view(df)
+    elif mode == "teacher":
+        return format_teacher_view(df)
+    else:
+        return format_admin_view(df)
