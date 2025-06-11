@@ -1,7 +1,5 @@
-flask
-pandas
-streamlit
-torch
-openpyxl
-scikit-learn
-ortools
+pip install streamlit==1.32.2
+pip install torch==2.2.2
+pip install ortools==9.5.2237
+pip install pandas openpyxl scikit-learn
+Pip install flask
